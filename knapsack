@@ -1,0 +1,298 @@
+#include<iostream>
+#include <time.h>
+
+using namespace std;
+
+//getting max value 
+int max(int a, int b)
+{
+	if (a > b) return a;
+	else return b;
+}
+
+//return max value
+//n: # of objects, w[0...n-1]
+//W: weight capacity 
+
+//pure recursive 
+int knapsack(int v[], int w[], int n, int W)
+{
+	//base cases
+	//if weight is less than 0 or no items left
+	if (W <= 0 || n==0)
+		return 0;
+
+	//run without (n-1) object that is heavier than weight
+	if (w[n - 1] > W)
+		return knapsack(v, w, n-1, W);
+
+	//general case: compare with and without (n-1) object 
+	else
+	{
+		int value1 = v[n - 1] + knapsack(w, v, n - 1, W - w[n - 1]);
+		int value2 = knapsack(w, v, n - 1, W);
+
+		return max(value1, value2);
+	}
+}
+
+
+int knapsackMemo(int v[], int w[], int n, int W, int** result);
+//needed for knapsackMemo
+int knapsackWrapper(int v[], int w[], int n, int W, int** result) 
+{
+	result = new int* [n + 1];
+
+	for (int i = 0; i <= n; i++)
+		result[i] = new int[W + 1];
+
+	for (int i = 0; i <=n; i++)
+		for (int j = 0; j <=W; j++) 
+			result[i][j] =-1;
+
+
+	knapsackMemo(v, w, n, W, result);
+	cout << endl;
+
+//PRINTS TABL 
+//COMMENTED OUT FOR RUNNING TIME 
+//	for (int i = 0; i <= n; i++)
+//	{
+//		for (int j = 0; j <= W; j++)
+//			cout << result[i][j] << "\t";
+//		cout << endl;
+//	}
+
+	return result[n][W];
+}
+
+//Recursive with memoization
+int knapsackMemo(int v[], int w[], int n, int W, int** result)
+{
+	if (result[n][W] != -1) 
+	{
+		cout << "overlapping subproblem when n = " << n << " and W = " << W << endl;
+		return result[n][W];
+	}
+	//base cases
+	//if weight is less than 0 or no items left
+	if (W == 0 || n == 0)
+		return 0;
+
+	//run without (n-1) object that is heavier than weight
+	if (w[n - 1] > W)
+	{
+		result[n][W] = knapsackMemo(v, w, n - 1, W, result);
+		return result[n][W];
+	}
+
+	//general case: compare with and without (n-1) object 
+	else 
+	{
+		int value1 = v[n - 1] + knapsackMemo(v, w, n - 1, W - w[n - 1], result);
+		int value2 = knapsackMemo(v, w, n - 1, W, result);
+
+		//finding max value 
+		if (value1 >= value2)
+		{
+			result[n][W] = value1; 
+			return value1;
+		}
+		else 
+		{
+			result[n][W] = value2;
+			return value2;
+		}
+	}
+
+}
+
+//Bottom-up tabulation 
+int knapsackTab(int v[], int w[], int n, int W)
+{
+	//using maxValue to store maximum value of objects 
+	int maxValue[n+1][W+1];
+
+	for (int i = 0; i <= W; i++)
+	{
+		maxValue[0][i] = 0;
+	}
+
+	//going through objects 
+	for (int i = 1; i <= n; i++)
+	{
+		//weight from 0 to max capacity 
+		for (int j = 0; j <= W; j++)
+		{
+			//checking if j>= w[i-1]
+			if (w[i - 1] > j)
+			{
+				maxValue[i][j] = maxValue [i - 1] [j] ;
+			}
+			else
+			{	//checking the ith item for max value 
+				maxValue[i][j] = max(maxValue[i-1][j], maxValue[i-1][j-w[i-1]] + v[i-1]);
+			}
+		}
+	}
+	//return max
+	return maxValue[n][W];
+}
+
+//function to print values that go into knapsack WITH TABULATION 
+void printKnapsack(int v[], int w[], int n, int W) 
+{
+	//using maxValue to store maximum value of objects 
+	int maxValue[n + 1][W + 1];
+
+	for (int i = 0; i <= W; i++)
+	{
+		maxValue[0][i] = 0;
+	}
+
+	//going through objects 
+	for (int i = 1; i <= n; i++)
+	{
+		//weight from 0 to max capacity 
+		for (int j = 0; j <= W; j++)
+		{
+			//checking if j>= w[i-1]
+			if (w[i - 1] > j)
+			{
+				maxValue[i][j] = maxValue[i - 1][j];
+			}
+			else
+			{	//checking the ith item for max value 
+				maxValue[i][j] = max(maxValue[i - 1][j], maxValue[i - 1][j - w[i - 1]] + v[i - 1]);
+			}
+		}
+	}
+	//return max
+	int value = maxValue[n][W];
+	int weight2 = W;
+
+	for (int i = n; i > 0 && value > 0; i--)
+	{
+		if (value == maxValue[i - 1][W])
+			continue;
+		else {
+			cout << w[i - 1] << " "; //prints weight 
+			value = value - v[i - 1];
+			weight2 = weight2 - w[i - 1];
+		}
+ }
+}
+
+int main()
+{
+	clock_t start;
+	clock_t end;
+	clock_t elapsed;
+	
+	int temp;
+
+	//testing input one 
+	int v[] = { 10, 20, 25, 8 };
+	int w[] = { 5, 3, 8, 4 };
+	int n = 4; 
+	int W = 13;
+	int  **result1;
+
+	cout << "Input 1: W=13, n=4, w={5,3,8,4} v={10,20,25,8}" << endl;
+	cout << "Max value returned by pure recursive: ";
+	start = clock();
+	temp = knapsack(v, w, n, W); //pure recursive
+	end = clock();
+	elapsed = end - start;
+	cout << temp << endl;
+	cout << " Running time: " << elapsed << " seconds" << endl;
+
+	cout << "Max value returned with memoization: ";
+	start = clock();
+	temp = knapsackWrapper(v, w, n, W, result1); //memoization
+	end = clock();
+	elapsed = end - start; 
+	cout << temp << endl;
+	cout << " Running time: " << elapsed << " seconds" << endl;
+
+	cout << "Max value returned with tabulation: ";
+	start = clock();
+	temp = knapsackTab(v, w, n, W); //tabulation
+	end = clock();
+	elapsed = end - start;
+	cout << temp << endl;
+	cout << " Running time: " << elapsed << " seconds" << endl;
+	cout << "Items in knapsack with tabulation: ";
+	printKnapsack(v, w, n, W);
+	cout << endl;
+
+	//testing input 2
+	int v2[] = { 10, 20, 25, 8 ,24 };
+	int w2[] = { 5, 3, 8, 4, 7 };
+	n = 5;
+	W = 20;
+	int** result2;
+
+	cout << "Input 2: W=20, n=5, w={5, 3, 8, 4, 7} v={10, 20, 25, 8, 24}" << endl;
+	cout << "Max value returned by pure recursive: ";
+	start = clock();
+	temp = knapsack(v2, w2, n, W); //pure recursive
+	end = clock();
+	elapsed = end - start;
+	cout << temp << endl;
+	cout << " Running time: " << elapsed << " seconds" << endl;
+
+	cout << "Max value returned with memoization: ";
+	start = clock();
+	temp = knapsackWrapper(v2, w2, n, W, result2); //memoization
+	end = clock();
+	elapsed = end - start;
+	cout << temp << endl;
+	cout << " Running time: " << elapsed << " seconds" << endl;
+
+	cout << "Max value returned with tabulation: ";
+	start = clock();
+	temp = knapsackTab(v2, w2, n, W); //tabulation
+	end = clock();
+	elapsed = end - start;
+	cout << temp << endl;
+	cout << "Running time: " << elapsed << " seconds" << endl;
+	cout << "Items in knapsack with tabulation: ";
+	printKnapsack(v2, w2, n, W);
+	cout << endl;
+
+	//testing input 3
+	int v3[] = { 10, 20, 25, 8, 24, 22 };
+	int w3[] = { 5, 3, 8, 4, 7, 6 };
+	n = 6;
+	W = 30;
+	int ** result3;
+
+	cout << "Input 3: W=30, n=6, w={5, 3, 8, 4, 7, 6} v={10, 20, 25, 8, 24, 22}" << endl;
+	cout << "Max value returned by pure recursive: ";
+	start = clock();
+	temp = knapsack(v3, w3, n, W); //pure recursive
+	end = clock();
+	elapsed = end - start;
+	cout << temp << endl;
+	cout << " Running time: " << elapsed << " seconds" << endl;
+
+	cout << "Max value returned with memoization: ";
+	start = clock();
+	temp = knapsackWrapper(v3, w3, n, W, result3); //memoization
+	end = clock();
+	elapsed = end - start;
+	cout << temp << endl;
+	cout << " Running time: " << elapsed << " seconds" << endl;
+
+	cout << "Max value returned with tabulation: ";
+	start = clock();
+	temp = knapsackTab(v3, w3, n, W); //tabulation
+	end = clock();
+	elapsed = end - start;
+	cout << temp << endl;
+	cout << " Running time: " << elapsed << " seconds" << endl;
+	cout << "Items in knapsack with tabulation: ";
+	printKnapsack(v3, w3, n, W);
+	cout << endl;
+}
